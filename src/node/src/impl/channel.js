@@ -1,6 +1,6 @@
 'use strict';
 
-const h2 = require('h2');
+const h2 = require('http2');
 
 /**
  * This class maintains a connection, and should expose enough information to
@@ -30,7 +30,7 @@ module.exports = class Channel {
     // options = extend({'grpc.primary_user_agent': 'grpc-node-h2/0.0.1'}, options);
 
     if (credentials) {
-      throw new Error('TODO: right now we only support insecure channels');
+      console.log('TODO: right now we only support insecure channels');
       // TODO: implement this.
     }
 
@@ -66,7 +66,7 @@ module.exports = class Channel {
   }
 
   close() {
-    this.h2session.destory();
+    this.h2session.destroy();
   }
 
   getTarget() {
