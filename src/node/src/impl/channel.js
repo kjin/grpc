@@ -1,5 +1,6 @@
 'use strict';
 
+const constants = require('./constants.js');
 const h2 = require('http2');
 
 /**
@@ -30,7 +31,6 @@ module.exports = class Channel {
     // options = extend({'grpc.primary_user_agent': 'grpc-node-h2/0.0.1'}, options);
 
     if (credentials) {
-      console.log('TODO: right now we only support insecure channels');
       // TODO: implement this.
     }
 
@@ -51,10 +51,15 @@ module.exports = class Channel {
     const hostname = matches[1];
     const port = matches[2];
 
+
     this.h2session = h2.connect({
       protocol: 'http:', // TODO: also https
       hostname: hostname,
       port: port
+    }, {
+      settings: {
+        
+      }
     }/*, (client, socket) => {}*/);
 
     // grpc runs some {client,server} channel plugins at this point
@@ -66,7 +71,7 @@ module.exports = class Channel {
   }
 
   close() {
-    this.h2session.destroy();
+    session.socket.destroy();
   }
 
   getTarget() {
@@ -74,10 +79,24 @@ module.exports = class Channel {
   }
 
   getConnectivityState(tryToConnect) {
-    // TODO
+    if (this.h2session._handle) {
+      return constants.connectivityState.READY;
+    } else {
+      return constants.connectivityState.CONNECTING;
+    }
   }
 
   watchConnectivityState(lastState, deadline, cb) {
-    // TODO
+    const checkState = () => {
+      const newState = this.getConnectivityState(false);
+      if (this.getConnectivityState(false) !== lastState) {
+        cb(null, newState);
+      } else if (Date.now() > deadline) {
+        cb(new Error('watchConnectivityState: Deadline expired.'));
+      } else {
+        setImmediate(checkState);
+      }
+    }
+    checkState();
   }
 };
