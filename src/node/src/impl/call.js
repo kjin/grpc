@@ -12,26 +12,40 @@ module.exports = class Call {
   }
 
   startBatch(obj, callback) {
-    setTimeout(() => {
+    const doWork = () => {
       // TODO obj[0] contains metadata, which are sent as custom headers.
       const headers = {
         ':method': 'POST',
         ':scheme': 'http', // TODO
         ':path': this.method,
-        'te': 'trailers'
+        'te': 'trailers',
+        'content-type': 'application/grpc',
+        'user-agent': 'grpc-node-http2',
+        'grpc-accept-encoding': 'identity,deflate,gzip'
       };
       const stream = this.channel.h2session.request(headers);
       // TODO We assume that a single data event is sufficient
       let responseData;
+      let offset = 0;
       stream.on('data', data => {
-        responseData = data;
+        if (!responseData) {
+          // TODO We assume first chunk is 5+ bytes
+          const length = data.readInt32BE(1);
+          responseData = Buffer.alloc(length + 5);
+        }
+        data.copy(responseData, offset);
+        offset += data.length;
+      });
+      stream.on('error', err => {
+        console.log(error);
       });
       stream.on('end', () => {
-        const compressed = responseData.readInt8(0) === 1;
+        const compressed = responseData.readInt8(0) & 1;
         const length = responseData.readInt32BE(1);
         const incomingData = Buffer.alloc(length);
         responseData.copy(incomingData, 0, 5);
         // TODO no error checking
+        // setTimeout(this.channel.close.bind(this.channel), 200);
         callback(null, {
           read: incomingData,
           metadata: {},
@@ -51,7 +65,16 @@ module.exports = class Call {
       obj[constants.opType.SEND_MESSAGE].copy(outgoingData, 5);
       stream.write(outgoingData);
       stream.end();
-    }, 200);
+    };
+    const checkState = (err) => {
+      const connectivityState = this.channel.getConnectivityState(true);
+      if (connectivityState === constants.connectivityState.READY) {
+        doWork();
+      } else {
+        this.channel.watchConnectivityState(connectivityState, Infinity, checkState);
+      }
+    };
+    checkState();
   }
 
   cancel() {
