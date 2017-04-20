@@ -22,6 +22,27 @@ module.exports = class Channel {
 
     // this.registeredCalls = [];
 
+    // Hack to close channel when last call is complete
+    this.numOpenCalls = 0;
+    this.addOpenCall = () => {
+      if (this.numOpenCalls++ === 0) {
+        this.h2session = h2.connect({
+          protocol: 'http:', // TODO: also https
+          hostname: hostname,
+          port: port
+        }, {
+          settings: {
+            
+          }
+        }/*, (client, socket) => {}*/);
+      }
+    }
+    this.subtractOpenCall = () => {
+      if (--this.numOpenCalls === 0) {
+          this.close();
+      }
+    }
+
     // TODO: only support client at the moment.
 
     this.target = address;
@@ -51,17 +72,6 @@ module.exports = class Channel {
     const hostname = matches[1];
     const port = matches[2];
 
-
-    this.h2session = h2.connect({
-      protocol: 'http:', // TODO: also https
-      hostname: hostname,
-      port: port
-    }, {
-      settings: {
-        
-      }
-    }/*, (client, socket) => {}*/);
-
     // grpc runs some {client,server} channel plugins at this point
     // see: grpc_channel_init_create_stack
     // - set_default_host_if_unset
@@ -71,7 +81,8 @@ module.exports = class Channel {
   }
 
   close() {
-    session.socket.destroy();
+    this.h2session.socket.destroy();
+    delete this.h2session;
   }
 
   getTarget() {

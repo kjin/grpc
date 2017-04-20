@@ -12,6 +12,7 @@ module.exports = class Call {
   }
 
   startBatch(obj, callback) {
+    this.channel.addOpenCall();
     const doWork = () => {
       // TODO obj[0] contains metadata, which are sent as custom headers.
       const headers = {
@@ -46,6 +47,7 @@ module.exports = class Call {
         responseData.copy(incomingData, 0, 5);
         // TODO no error checking
         // setTimeout(this.channel.close.bind(this.channel), 200);
+        this.channel.subtractOpenCall();
         callback(null, {
           read: incomingData,
           metadata: {},
