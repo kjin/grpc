@@ -32,7 +32,7 @@ module.exports = class Channel {
           port: port
         }, {
           settings: {
-            
+            initialWindowSize: 1024
           }
         }/*, (client, socket) => {}*/);
       }
