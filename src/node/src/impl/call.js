@@ -15,7 +15,7 @@ module.exports = class Call {
   }
 
   startBatch(obj, callback) {
-    // console.log(obj);
+    console.log(obj);
     if (!this.initialized) {
       this.channel.addOpenCall();
       this.initialized = true;
@@ -90,6 +90,26 @@ module.exports = class Call {
           }
         });
       }
+      // TODO We don't support the operations related to metadata or
+      // server-side processing. But for the purposes of prototyping the client
+      // what we have here should be sufficient
+      if (obj[constants.opType.SEND_MESSAGE]) {
+        // obj[constants.opType.SEND_MESSAGE] contains the data itself.
+        const outgoingData = Buffer.alloc(obj[constants.opType.SEND_MESSAGE].length + 5);
+        // byte 0 is compressed flag. TODO -- determine when this should be set
+        outgoingData.writeInt8(0, 0);
+        // bytes 1-4 represent the 4-byte data length.
+        outgoingData.writeInt32BE(obj[constants.opType.SEND_MESSAGE].length, 1);
+        // bytes 5+ are the data itself.
+        obj[constants.opType.SEND_MESSAGE].copy(outgoingData, 5);
+        this.stream.write(outgoingData);
+        if (!obj[constants.opType.RECV_MESSAGE]) {
+          callback(null);
+        }
+      }
+      if (obj[constants.opType.SEND_CLOSE_FROM_CLIENT]) {
+        this.stream.end();
+      }
       if (obj[constants.opType.RECV_MESSAGE]) {
         if (this.responses.length > 0) {
           callback(null, {
@@ -104,19 +124,8 @@ module.exports = class Call {
           this.responseCbs.push(callback);
         }
       }
-      if (obj[constants.opType.SEND_MESSAGE]) {
-        // obj[constants.opType.SEND_MESSAGE] contains the data itself.
-        const outgoingData = Buffer.alloc(obj[constants.opType.SEND_MESSAGE].length + 5);
-        // byte 0 is compressed flag. TODO -- determine when this should be set
-        outgoingData.writeInt8(0, 0);
-        // bytes 1-4 represent the 4-byte data length.
-        outgoingData.writeInt32BE(obj[constants.opType.SEND_MESSAGE].length, 1);
-        // bytes 5+ are the data itself.
-        obj[constants.opType.SEND_MESSAGE].copy(outgoingData, 5);
-        this.stream.write(outgoingData);
-      }
-      if (obj[constants.opType.SEND_CLOSE_FROM_CLIENT]) {
-        this.stream.end();
+      if (obj[constants.opType.RECV_STATUS_ON_CLIENT]) {
+        // TODO Not sure what to do here
       }
     };
     const checkState = (err) => {
