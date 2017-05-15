@@ -2,6 +2,7 @@
 
 const constants = require('./constants.js');
 const h2 = require('http2');
+const ChannelCredentials = require('./channel_credentials.js');
 
 /**
  * This class maintains a connection, and should expose enough information to
@@ -24,17 +25,32 @@ module.exports = class Channel {
 
     // Hack to close channel when last call is complete
     this.numOpenCalls = 0;
+
+    var protocol = 'http:';
+    var opts = {
+      settings: {
+        initialWindowSize: 1024
+      }
+    };
+
+    if (credentials) {
+      this.callCredentials = credentials.getCallCredentials();
+      if (credentials.useTLS()) {
+        protocol = 'https:';
+        if (credentials.getSecureContext()) {
+          opts.secureContext = credentials.getSecureContext();
+        }
+      }
+    }
+
     this.addOpenCall = () => {
       if (this.numOpenCalls++ === 0) {
         this.h2session = h2.connect({
-          protocol: 'http:', // TODO: also https
+          protocol: protocol,
           hostname: hostname,
           port: port
-        }, {
-          settings: {
-            initialWindowSize: 1024
-          }
-        }/*, (client, socket) => {}*/);
+        },
+        opts /*, (client, socket) => {}*/);
       }
     }
     this.subtractOpenCall = () => {
@@ -50,10 +66,6 @@ module.exports = class Channel {
 
     // TODO
     // options = extend({'grpc.primary_user_agent': 'grpc-node-h2/0.0.1'}, options);
-
-    if (credentials) {
-      // TODO: implement this.
-    }
 
     // TODO: make sure the options are all int32 or string values
     // c.f. ParseChannelArgs
@@ -81,7 +93,9 @@ module.exports = class Channel {
   }
 
   close() {
-    this.h2session.socket.destroy();
+    if (!this.h2session.destroyed) {
+      this.h2session.socket.destroy();
+    }
     delete this.h2session;
   }
 

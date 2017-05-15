@@ -52,20 +52,7 @@ module.exports.CallCredentials.createFromPlugin = function() {
 
 module.exports.Channel = require('./impl/channel.js');
 
-module.exports.ChannelCredentials = function() {
-  // TODO
-  return binding.ChannelCredentials.apply(this, arguments);
-};
-
-module.exports.ChannelCredentials.createSsl = function() {
-  // TODO
-  return binding.ChannelCredentials.createSsl.apply(this, arguments);
-};
-
-module.exports.ChannelCredentials.createInsecure = function() {
-  // TODO
-  return binding.ChannelCredentials.createInsecure.apply(this, arguments);
-};
+module.exports.ChannelCredentials = require('./impl/channel_credentials.js');
 
 module.exports.Server = function() {
   // TODO

@@ -15,7 +15,6 @@ module.exports = class Call {
   }
 
   startBatch(obj, callback) {
-    console.log(obj);
     if (!this.initialized) {
       this.channel.addOpenCall();
       this.initialized = true;
