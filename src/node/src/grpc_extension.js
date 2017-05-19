@@ -39,8 +39,9 @@ var binding = require(binding_path);
 
 module.exports = binding;
 
-// Uncomment this line to use vanilla implementation
-// return;
+if (!global.nodeCoreHttp2) {
+  return;
+}
 
 // Defined constants
 module.exports = Object.assign({}, require('./impl/constants.js'));
