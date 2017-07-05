@@ -29,7 +29,8 @@ module.exports = class Call {
           'te': 'trailers',
           'content-type': 'application/grpc',
           'user-agent': 'grpc-node-http2',
-          'grpc-accept-encoding': 'identity,deflate,gzip'
+          'grpc-accept-encoding': 'identity,deflate,gzip',
+          'x-goog-api-client': 'gl-node/8.1.2 gccl/0.10.1 grpc/1.5.0-dev'
         };
         this.stream = this.channel.h2session.request(headers);
         // TODO We assume that a single data event is sufficient

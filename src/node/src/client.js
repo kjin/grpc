@@ -45,6 +45,8 @@ var constants = require('./constants');
 
 var EventEmitter = require('events').EventEmitter;
 
+var {createInsecure} = require('./credentials');
+
 var stream = require('stream');
 
 var Readable = stream.Readable;

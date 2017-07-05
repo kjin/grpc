@@ -51,6 +51,9 @@ module.exports = class Channel {
           port: port
         },
         opts /*, (client, socket) => {}*/);
+        this.h2session.on('error', err => {
+          console.error(err);
+        });
       }
     }
     this.subtractOpenCall = () => {
@@ -79,10 +82,12 @@ module.exports = class Channel {
     options['grpc.server_uri'] = `dns:///${address}`; // TODO: only add prefix
     // when needed.
 
-    // TODO: too hacky at the moment:
-    const matches = address.match(/(.*):(\d+)/);
-    const hostname = matches[1];
-    const port = matches[2];
+    const matches = address.match(/(([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+)(:(\d+))?/);
+    if (!matches) {
+      console.log(`Failed to match pattern for address: ${address}`);
+    }
+    const hostname = matches[1]; // (([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+)
+    const port = matches[4] || '80'; // (\d+)
 
     // grpc runs some {client,server} channel plugins at this point
     // see: grpc_channel_init_create_stack
@@ -114,7 +119,7 @@ module.exports = class Channel {
   watchConnectivityState(lastState, deadline, cb) {
     const checkState = () => {
       const newState = this.getConnectivityState(false);
-      if (this.getConnectivityState(false) !== lastState) {
+      if (newState !== lastState) {
         cb(null, newState);
       } else if (Date.now() > deadline) {
         cb(new Error('watchConnectivityState: Deadline expired.'));
