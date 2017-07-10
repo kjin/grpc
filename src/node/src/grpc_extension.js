@@ -23,15 +23,14 @@
 
 'use strict';
 
-var binary = require('node-pre-gyp/lib/pre-binding');
-var path = require('path');
-var binding_path =
-    binary.find(path.resolve(path.join(__dirname, '../../../package.json')));
-var binding = require(binding_path);
+if (global.ccore) {
+  var binary = require('node-pre-gyp/lib/pre-binding');
+  var path = require('path');
+  var binding_path =
+      binary.find(path.resolve(path.join(__dirname, '../../../package.json')));
+  var binding = require(binding_path);
 
-module.exports = binding;
-
-if (!global.nodeCoreHttp2) {
+  module.exports = binding;
   return;
 }
 
@@ -42,12 +41,12 @@ module.exports.Call = require('./impl/call.js');
 
 module.exports.CallCredentials = function() {
   // TODO
-  return binding.CallCredentials.apply(this, arguments);
+  throw new Error('CallCredentials: not implemented');
 };
 
 module.exports.CallCredentials.createFromPlugin = function() {
   // TODO
-  return binding.CallCredentials.createFromPlugin.apply(this, arguments);
+  throw new Error('CallCredentials.createFromPlugin: not implemented');
 };
 
 module.exports.Channel = require('./impl/channel.js');
@@ -56,50 +55,60 @@ module.exports.ChannelCredentials = require('./impl/channel_credentials.js');
 
 module.exports.Server = function() {
   // TODO
-  return binding.Server.apply(this, arguments);
+  throw new Error('Server: not implemented');
 };
 
 module.exports.ServerCredentials = function() {
   // TODO
-  return binding.ServerCredentials.apply(this, arguments);
+  throw new Error('ServerCredentials: not implemented');
 };
 
 module.exports.ServerCredentials.createSsl = function() {
   // TODO
-  return binding.ServerCredentials.createSsl.apply(this, arguments);
+  throw new Error('ServerCredentials.createSsl: not implemented');
 };
 
 module.exports.ServerCredentials.createInsecure = function() {
   // TODO
-  return binding.ServerCredentials.createInsecure.apply(this, arguments);
+  throw new Error('ServerCredentials.createInsecure: not implemented');
 };
 
-module.exports.metadataKeyIsLegal = function() {
-  // TODO
-  return binding.metadataKeyIsLegal.apply(this, arguments);
+const isLegal = (legalChars, s) => s
+  .split('')
+  .map(c => !!(1 << (c.charCodeAt(0) & 7) && legalChars[c.charCodeAt(0) >> 3]))
+  .reduce((a, b) => a && b, true)
+
+module.exports.metadataKeyIsLegal = function(key) {
+  const legalChars = [
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0xff, 0x03, 0x00, 0x00, 0x00,
+    0x80, 0xfe, 0xff, 0xff, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  ];
+  return isLegal(legalChars, key);
 };
 
-module.exports.metadataNonbinValueIsLegal = function() {
-  // TODO
-  return binding.metadataNonbinValueIsLegal.apply(this, arguments);
+module.exports.metadataNonbinValueIsLegal = function(value) {
+  const legalChars = [
+    0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  ];
+  return isLegal(legalChars, value);
 };
 
-module.exports.metadataKeyIsBinary = function() {
+module.exports.metadataKeyIsBinary = function(key) {
   // TODO
-  return binding.metadataKeyIsBinary.apply(this, arguments);
+  return key.endsWith('-bin');
 };
 
 module.exports.setDefaultRootsPem = function() {
-  // TODO
-  return binding.setDefaultRootsPem.apply(this, arguments);
+  // noop
 };
 
 module.exports.setDefaultLoggerCallback = function() {
-  // TODO
-  return binding.setDefaultLoggerCallback.apply(this, arguments);
+  // noop
 };
 
 module.exports.setLogVerbosity = function() {
-  // TODO
-  return binding.setLogVerbosity.apply(this, arguments);
+  // noop
 };
