@@ -43,6 +43,7 @@ module.exports = class Channel {
       }
     }
 
+    this.connectionState = constants.connectivityState.CONNECTING;
     this.addOpenCall = () => {
       if (this.numOpenCalls++ === 0) {
         this.h2session = h2.connect({
@@ -51,6 +52,9 @@ module.exports = class Channel {
           port: port
         },
         opts /*, (client, socket) => {}*/);
+        this.h2session.on('connect', () => {
+          this.connectionState = constants.connectivityState.READY;
+        });
         this.h2session.on('error', err => {
           console.error(err);
         });
@@ -109,11 +113,7 @@ module.exports = class Channel {
   }
 
   getConnectivityState(tryToConnect) {
-    if (this.h2session._handle) {
-      return constants.connectivityState.READY;
-    } else {
-      return constants.connectivityState.CONNECTING;
-    }
+    return this.connectionState;
   }
 
   watchConnectivityState(lastState, deadline, cb) {
