@@ -104,7 +104,7 @@ module.exports = class Call {
         obj[constants.opType.SEND_MESSAGE].copy(outgoingData, 5);
         this.stream.write(outgoingData);
         if (!obj[constants.opType.RECV_MESSAGE]) {
-          callback(null);
+          callback(null, { metadata: {} });
         }
       }
       if (obj[constants.opType.SEND_CLOSE_FROM_CLIENT]) {
