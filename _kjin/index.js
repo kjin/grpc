@@ -20,9 +20,8 @@ const grpc = require('..')
 const fs = require('fs')
 const util = require('util')
 
-const protoJson = JSON.parse('{"nested":{"nodetest":{"nested":{"Tester":{"methods":{"TestUnary":{"requestType":"TestRequest","responseType":"TestReply"},"TestClientStream":{"requestType":"TestRequest","requestStream":true,"responseType":"TestReply"},"TestServerStream":{"requestType":"TestRequest","responseType":"TestReply","responseStream":true},"TestBidiStream":{"requestType":"TestRequest","requestStream":true,"responseType":"TestReply","responseStream":true}}},"TestRequest":{"fields":{"n":{"type":"int32","id":1}}},"TestReply":{"fields":{"n":{"type":"int32","id":1}}}}}}}')
-
-const proto = grpc.loadObject(require('protobufjs').Root.fromJSON(protoJson), { protobufjsVersion: 6 }).nodetest
+const protobufjsVersion = 5
+const proto = getProto(protobufjsVersion).nodetest
 
 const [keyData, pemData, caData] = [
   '../src/node/test/data/server1.key',
@@ -143,4 +142,17 @@ if (mode === 'client' || mode === 'both') {
   }, Promise.resolve()).then(() => {
     serverShutdown()
   }).catch(e => console.error(e))
+}
+
+// data
+
+function getProto(protobufjsVersion) {
+  const protobufjs = require('protobufjs')
+  if (protobufjsVersion === 5) {
+    const json = '{"package":"nodetest","syntax":"proto2","messages":[{"name":"TestRequest","syntax":"proto3","fields":[{"rule":"optional","type":"int32","name":"n","id":1}]},{"name":"TestReply","syntax":"proto3","fields":[{"rule":"optional","type":"int32","name":"n","id":1}]}],"services":[{"name":"Tester","options":{},"rpc":{"TestUnary":{"request":"TestRequest","request_stream":false,"response":"TestReply","response_stream":false,"options":{}},"TestClientStream":{"request":"TestRequest","request_stream":true,"response":"TestReply","response_stream":false,"options":{}},"TestServerStream":{"request":"TestRequest","request_stream":false,"response":"TestReply","response_stream":true,"options":{}},"TestBidiStream":{"request":"TestRequest","request_stream":true,"response":"TestReply","response_stream":true,"options":{}}}}],"isNamespace":true}'
+    return grpc.loadObject(protobufjs.loadJson(json), { protobufjsVersion })
+  } else if (protobufjsVersion === 6) {
+    const json = '{"nested":{"nodetest":{"nested":{"Tester":{"methods":{"TestUnary":{"requestType":"TestRequest","responseType":"TestReply"},"TestClientStream":{"requestType":"TestRequest","requestStream":true,"responseType":"TestReply"},"TestServerStream":{"requestType":"TestRequest","responseType":"TestReply","responseStream":true},"TestBidiStream":{"requestType":"TestRequest","requestStream":true,"responseType":"TestReply","responseStream":true}}},"TestRequest":{"fields":{"n":{"type":"int32","id":1}}},"TestReply":{"fields":{"n":{"type":"int32","id":1}}}}}}}'
+    return grpc.loadObject(protobufjs.Root.fromJSON(json), { protobufjsVersion })
+  }
 }
