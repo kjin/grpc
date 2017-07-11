@@ -12,6 +12,10 @@ module.exports = class Call {
     this.responses = [];
     this.responseCbs = [];
     this.initialized = false;
+    this.status = {
+      metadata: {},
+      code: constants.status.OK
+    }
   }
 
   startBatch(obj, callback) {
@@ -62,10 +66,7 @@ module.exports = class Call {
                 this.responseCbs.shift().call(null, null, {
                   read: incomingData,
                   metadata: {},
-                  status: {
-                    metadata: {},
-                    code: constants.status.OK
-                  }
+                  status: this.status
                 });
               } else {
                 this.responses.push(incomingData);
@@ -80,10 +81,7 @@ module.exports = class Call {
             this.responseCbs.shift().call(null, null, {
               read: null,
               metadata: {},
-              status: {
-                metadata: {},
-                code: constants.status.OK
-              }
+              status: this.status
             });
           } else {
             this.responses.push(null);
@@ -103,7 +101,7 @@ module.exports = class Call {
         // bytes 5+ are the data itself.
         obj[constants.opType.SEND_MESSAGE].copy(outgoingData, 5);
         this.stream.write(outgoingData);
-        if (!obj[constants.opType.RECV_MESSAGE]) {
+        if (!obj[constants.opType.RECV_MESSAGE] && !obj[constants.opType.RECV_STATUS_ON_CLIENT]) {
           callback(null, { metadata: {} });
         }
       }
@@ -115,17 +113,33 @@ module.exports = class Call {
           callback(null, {
             read: this.responses.shift(),
             metadata: {},
-            status: {
-              metadata: {},
-              code: constants.status.OK
-            }
+            status: this.status
           });
         } else {
           this.responseCbs.push(callback);
         }
       }
       if (obj[constants.opType.RECV_STATUS_ON_CLIENT]) {
-        // TODO Not sure what to do here
+        if (!obj[constants.opType.RECV_MESSAGE]) {
+          // TODO This implementation is incorrect and likely to not work
+          this.stream.once('trailers', (headers, flags) => {
+            callback(null, {
+              status: {
+                metadata: {},
+                code: parseInt(headers['grpc-status']),
+                message: headers['grpc-message']
+              }
+            });
+          });
+        } else {
+          this.stream.once('trailers', (headers, flags) => {
+            this.status = {
+              metadata: {},
+              code: parseInt(headers['grpc-status']),
+              message: headers['grpc-message']
+            };
+          });
+        }
       }
     };
     const checkState = (err) => {
