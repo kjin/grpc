@@ -22,8 +22,7 @@
  */
 
 'use strict';
-
-if (global.ccore) {
+if (!global.experimental && !process.env.GRPC_HTTP2) {
   var binary = require('node-pre-gyp/lib/pre-binding');
   var path = require('path');
   var binding_path =
@@ -39,15 +38,7 @@ module.exports = Object.assign({}, require('./impl/constants.js'));
 
 module.exports.Call = require('./impl/call.js');
 
-module.exports.CallCredentials = function() {
-  // TODO
-  throw new Error('CallCredentials: not implemented');
-};
-
-module.exports.CallCredentials.createFromPlugin = function() {
-  // TODO
-  throw new Error('CallCredentials.createFromPlugin: not implemented');
-};
+module.exports.CallCredentials = require('./impl/call_credentials.js');
 
 module.exports.Channel = require('./impl/channel.js');
 
@@ -55,22 +46,26 @@ module.exports.ChannelCredentials = require('./impl/channel_credentials.js');
 
 module.exports.Server = function() {
   // TODO
-  throw new Error('Server: not implemented');
+  const args = Array.prototype.slice.apply(arguments).join(', ');
+  throw new Error(`Server(${args}): not implemented`);
 };
 
 module.exports.ServerCredentials = function() {
   // TODO
-  throw new Error('ServerCredentials: not implemented');
+  const args = Array.prototype.slice.apply(arguments).join(', ');
+  throw new Error(`ServerCredentials(${args}): not implemented`);
 };
 
 module.exports.ServerCredentials.createSsl = function() {
   // TODO
-  throw new Error('ServerCredentials.createSsl: not implemented');
+  const args = Array.prototype.slice.apply(arguments).join(', ');
+  throw new Error(`ServerCredentials.createSsl(${args}): not implemented`);
 };
 
 module.exports.ServerCredentials.createInsecure = function() {
   // TODO
-  throw new Error('ServerCredentials.createInsecure: not implemented');
+  const args = Array.prototype.slice.apply(arguments).join(', ');
+  throw new Error(`ServerCredentials.createInsecure(${args}): not implemented`);
 };
 
 const isLegal = (legalChars, s) => s

@@ -91,7 +91,7 @@ module.exports = class Channel {
       console.log(`Failed to match pattern for address: ${address}`);
     }
     const hostname = matches[1]; // (([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+)
-    const port = matches[4] || '80'; // (\d+)
+    const port = matches[4] || protocol === 'https:' ? '443' : '80'; // (\d+)
 
     // grpc runs some {client,server} channel plugins at this point
     // see: grpc_channel_init_create_stack
