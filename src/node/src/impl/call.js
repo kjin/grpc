@@ -17,6 +17,7 @@ module.exports = class Call {
       code: constants.status.OK
     };
     this.credentials = null;
+    this.ended = false;
   }
 
   startBatch(obj, callback) {
@@ -105,6 +106,12 @@ module.exports = class Call {
             }
           });
           this.stream.on('end', () => {
+            if (this.ended) {
+              // TODO: figure out why 'end' event is being emitted twice.
+              // console.trace('already ended');
+              return;
+            }
+            this.ended = true;
             this.channel.subtractOpenCall();
             if (this.responseCbs.length > 0) {
               this.responseCbs.shift().call(null, null, {
@@ -172,7 +179,7 @@ module.exports = class Call {
             });
           }
         }
-      });
+      }).catch(err => console.error(err));
     };
     const checkState = (err) => {
       const connectivityState = this.channel.getConnectivityState(true);
