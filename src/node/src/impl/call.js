@@ -139,13 +139,12 @@ module.exports = class Call {
           // bytes 5+ are the data itself.
           obj[constants.opType.SEND_MESSAGE].copy(outgoingData, 5);
           this.stream.write(outgoingData);
-          if (!obj[constants.opType.RECV_MESSAGE] && !obj[constants.opType.RECV_STATUS_ON_CLIENT]) {
-            callback(null, { metadata: {} });
-          }
         }
         if (obj[constants.opType.SEND_CLOSE_FROM_CLIENT]) {
           this.stream.end();
         }
+
+        // all callbacks are down here
         if (obj[constants.opType.RECV_MESSAGE]) {
           if (this.responses.length > 0) {
             callback(null, {
@@ -178,6 +177,9 @@ module.exports = class Call {
               };
             });
           }
+        }
+        if (!obj[constants.opType.RECV_MESSAGE] && !obj[constants.opType.RECV_STATUS_ON_CLIENT]) {
+          callback(null, { metadata: {} });
         }
       }).catch(err => console.error(err));
     };
