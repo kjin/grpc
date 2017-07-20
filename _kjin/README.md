@@ -15,3 +15,21 @@ So in essence:
 alias node-h2=${NODE_H2_PATH}
 GRPC_HTTP2=1 node-h2 --expose-http2 [...]
 ```
+
+## Caveat: running `mocha` tests
+
+Instead of running `$(npm bin)/mocha` with `node-h2`, try: `node-h2 --expose-http2 $(npm bin)/_mocha`, because `mocha` doesn't support relaying the `--expose-http2` flag to Node yet.
+
+## Caveat: running `index.js` in this directory
+
+To enable SSL out of the box I used certificates and private keys from elsewhere in this repository. To support this you'll need to first edit `/etc/hosts` to add the following line:
+
+```
+127.0.0.1 waterzooi.test.google.be
+```
+
+Otherwise you'll likely end up with an error message like this:
+
+```
+E0720 13:27:51.292141450  105381 server_chttp2.c:38]         {"created":"@1500582471.292102760","description":"getaddrinfo failed","file":"../src/core/lib/iomgr/resolve_address_uv.c","file_line":81,"os_error":"unknown node or service"}
+```
