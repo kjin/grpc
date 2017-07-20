@@ -4,6 +4,8 @@ const constants = require('./constants.js');
 const h2 = require('http2');
 const ChannelCredentials = require('./channel_credentials.js');
 
+const kOnChangeConnectivityState = Symbol('onChangeConnectivityState');
+
 /**
  * This class maintains a connection, and should expose enough information to
  * start and transmit data over a stream.
@@ -43,6 +45,7 @@ module.exports = class Channel {
       }
     }
 
+    this.watchingConnectionState = new Set();
     this.connectionState = constants.connectivityState.CONNECTING;
     this.addOpenCall = () => {
       if (this.numOpenCalls++ === 0) {
@@ -53,7 +56,7 @@ module.exports = class Channel {
         },
         opts /*, (client, socket) => {}*/);
         this.h2session.on('connect', () => {
-          this.connectionState = constants.connectivityState.READY;
+          this[kOnChangeConnectivityState](constants.connectivityState.READY);
         });
         this.h2session.on('error', err => {
           console.error(err);
@@ -101,11 +104,18 @@ module.exports = class Channel {
     // - maybe_add_census_filter
   }
 
+  [kOnChangeConnectivityState](newState) {
+    this.connectionState = newState;
+    this.watchingConnectionState.forEach(cb => cb(newState));
+    this.watchingConnectionState.clear();
+  }
+
   close() {
     if (!this.h2session.destroyed) {
       this.h2session.socket.destroy();
     }
     delete this.h2session;
+    this[kOnChangeConnectivityState](constants.connectivityState.IDLE);
   }
 
   getTarget() {
@@ -117,16 +127,11 @@ module.exports = class Channel {
   }
 
   watchConnectivityState(lastState, deadline, cb) {
-    const checkState = () => {
-      const newState = this.getConnectivityState(false);
-      if (newState !== lastState) {
-        cb(null, newState);
-      } else if (Date.now() > deadline) {
-        cb(new Error('watchConnectivityState: Deadline expired.'));
-      } else {
-        setImmediate(checkState);
-      }
+    this.watchingConnectionState.add(cb);
+    if (deadline !== Infinity) {
+      setTimeout(() => {
+        this.watchingConnectionState.delete(cb);
+      }, Date.now() - deadline);
     }
-    checkState();
   }
 };

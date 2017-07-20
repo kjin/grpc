@@ -32,6 +32,7 @@ if (!global.experimental && !process.env.GRPC_HTTP2) {
   module.exports = binding;
   return;
 }
+console.error('Using prototype gRPC client built with Node.js experimental http2 implementation.');
 
 // Defined constants
 module.exports = Object.assign({}, require('./impl/constants.js'));
