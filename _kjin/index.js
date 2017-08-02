@@ -1,21 +1,7 @@
-// Usage
-const [_bin, _script, mode, impl, creds, ...methodCalls] = process.argv
-
 // Alias this host to loopback in /etc/hosts
 const host = 'waterzooi.test.google.be'
 const port = 8080
 
-if (!methodCalls.length) {
-  console.log(`Usage: node ${__filename} mode=(server|client|both) impl=(ccore|experimental) creds=(insecure|ssl|googleAuth) ...methodCalls=(unary|clientStream|serverStream|bidiStream|all)`)
-  process.exit(0)
-}
-
-if (methodCalls[0] === 'all') {
-  methodCalls.length = 0;
-  methodCalls.push('unary', 'clientStream', 'serverStream', 'bidiStream');
-}
-
-global[impl] = true
 const grpc = require('..')
 const fs = require('fs')
 const util = require('util')
@@ -29,14 +15,12 @@ const [keyData, pemData, caData] = [
   '../src/node/test/data/ca.pem'
 ].map(a => fs.readFileSync(a))
 
-let serverShutdown = () => {}
-
-if (mode === 'server' || mode === 'both') {
+function startServer(creds) {
   const serverCredentials = (() => {
     switch (creds) {
       case 'ssl':
         return grpc.ServerCredentials.createSsl(null, [{private_key: keyData, cert_chain: pemData}])
-      default: 
+      default:
         return grpc.ServerCredentials.createInsecure()
     }
   })()
@@ -75,9 +59,10 @@ if (mode === 'server' || mode === 'both') {
   })
   server.bind(`${host}:${port}`, serverCredentials)
   server.start()
-  serverShutdown = () => server.tryShutdown()
+  return () => server.tryShutdown()
 }
-if (mode === 'client' || mode === 'both') {
+
+function startClient(creds, messageSize) {
   const clientCredentials = (() => {
     switch (creds) {
       case 'ssl':
@@ -136,12 +121,7 @@ if (mode === 'client' || mode === 'both') {
       duplex.end()
     })
   }
-
-  methodCalls.reduce((p, methodCall) => {
-    return p.then(clientMethods[methodCall])
-  }, Promise.resolve()).then(() => {
-    serverShutdown()
-  }).catch(e => console.error(e))
+  return clientMethods
 }
 
 // data
@@ -154,5 +134,38 @@ function getProto(protobufjsVersion) {
   } else if (protobufjsVersion === 6) {
     const json = '{"nested":{"nodetest":{"nested":{"Tester":{"methods":{"TestUnary":{"requestType":"TestRequest","responseType":"TestReply"},"TestClientStream":{"requestType":"TestRequest","requestStream":true,"responseType":"TestReply"},"TestServerStream":{"requestType":"TestRequest","responseType":"TestReply","responseStream":true},"TestBidiStream":{"requestType":"TestRequest","requestStream":true,"responseType":"TestReply","responseStream":true}}},"TestRequest":{"fields":{"n":{"type":"int32","id":1}}},"TestReply":{"fields":{"n":{"type":"int32","id":1}}}}}}}'
     return grpc.loadObject(protobufjs.Root.fromJSON(json), { protobufjsVersion })
+  }
+}
+
+// CLI
+if (!module.parent) {
+  const [_bin, _script, mode, impl, creds, ...methodCalls] = process.argv
+
+  if (!creds || (mode.client && !methodCalls.length)) {
+    console.log(`Usage: node ${__filename} mode=(server|client|both) creds=(insecure|ssl|googleAuth) ...methodCalls=(unary|clientStream|serverStream|bidiStream|all)`)
+    process.exit(0)
+  }
+
+  let serverShutdown = () => {}
+
+  if (mode === 'server' || mode === 'both') {
+    serverShutdown = startServer()
+  }
+  if (mode === 'client' || mode === 'both') {
+    const clientMethods = startClient()
+    if (methodCalls[0] === 'all') {
+      methodCalls.length = 0;
+      methodCalls.push('unary', 'clientStream', 'serverStream', 'bidiStream');
+    }
+    methodCalls.reduce((p, methodCall) => {
+      return p.then(clientMethods[methodCall])
+    }, Promise.resolve()).then(() => {
+      serverShutdown()
+    }).catch(e => console.error(e))
+  }
+} else {
+  module.exports = {
+    startServer,
+    startClient
   }
 }
