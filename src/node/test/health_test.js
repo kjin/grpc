@@ -20,9 +20,9 @@
 
 var assert = require('assert');
 
-var health = require('../health_check/health');
+var health = require('../../grpc-health-check/health');
 
-var health_messages = require('../health_check/v1/health_pb');
+var health_messages = require('../../grpc-health-check/v1/health_pb');
 
 var ServingStatus = health_messages.HealthCheckResponse.ServingStatus;
 
